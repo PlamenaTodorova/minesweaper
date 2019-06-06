@@ -2,6 +2,11 @@
 class board
 {
 public:
+	enum VisibilityState
+	{
+		hidden, visible, marked
+	};
+
 	board(int n, int m, int mines);
 	//The great 4
 	~board();
@@ -11,8 +16,7 @@ public:
 	void printBoard() const;
 
 private:
-	int** realBoard;
-	int** visibleBoard;
+	int*** realBoard;
 	int n, m;
 	int mines;
 	int minesLeft;

@@ -1,28 +1,30 @@
 #include "board.h"
 #include<random>
 #include<iostream>
+#include<exception>
 
 board::board(int n, int m, int mines)
 {
-	//validations of the input
+	if (n < 0 || m < 0 || mines > n * m)
+		throw "Not valid parameters.";
+
 	this->n = n;
 	this->m = m;
 	this->mines = mines;
 
-	this->realBoard = new int*[n];
-	this->visibleBoard = new int*[n];
-
+	this->realBoard = new int**[n];
+	
 	for (int i = 0; i < n; i++)
 	{
-		this->realBoard[i] = new int[m];
-		this->visibleBoard[i] = new int[m];
+		this->realBoard[i] = new int*[m];
 	}
 
 	for ( int i = 0; i < n; i++)
 		for (int j = 0; j < m; j++)
 		{
-			this->realBoard[i][j] = 0;
-			this->visibleBoard[i][j] = 0; // hidden
+			this->realBoard[i][j] = new int[2];
+			this->realBoard[i][j][0] = 0; //start status
+			this->realBoard[i][j][1] = hidden; //hiden
 		}
 
 	this->setMines();
@@ -37,13 +39,13 @@ void board::setMines()
 		int x = rand() % n;
 		int y = rand() % m;
 
-		if (realBoard[x][y] == -1)
+		if (realBoard[x][y][0] == -1)
 		{
 			i--;
 		}
 		else
 		{
-			realBoard[x][y] = -1;
+			realBoard[x][y][0] = -1;
 		}
 	}
 }
@@ -54,9 +56,9 @@ void board::generateBoard()
 	{
 		for (int j = 0; j < m; j++)
 		{
-			if (realBoard[i][j] != -1)
+			if (realBoard[i][j][0] != -1)
 			{
-				realBoard[i][j] = countMines(i, j);
+				realBoard[i][j][0] = countMines(i, j);
 			}
 		}
 	}
@@ -71,9 +73,12 @@ int board::countMines(int x, int y)
 
 	for (int i = 0; i < 8; i++)
 	{
-		if (x + a[i] >= 0 && x + a[i] < n && y + b[i] >= 0 && y + b[i] < m)
+		int new_x = x + a[i];
+		int new_y = y + b[i];
+
+		if (new_x >= 0 && new_x < n && new_y >= 0 && new_y < m)
 		{
-			if (realBoard[x + a[i]][y + b[i]] == -1)
+			if (realBoard[new_x][new_y][0] == -1)
 				count++;
 		}
 	}
@@ -83,10 +88,10 @@ int board::countMines(int x, int y)
 
 bool board::clickTile(int x, int y)
 {
-	if (visibleBoard[x][y] == 1)
+	if (realBoard[x][y][1] == visible)
 		return true;
 
-	if (realBoard[x][y] == -1)
+	if (realBoard[x][y][0] == -1)
 		return false;
 
 	this->openTile(x, y);
@@ -96,15 +101,17 @@ bool board::clickTile(int x, int y)
 
 void board::markAsMine(int x, int y)
 {
-	if (visibleBoard[x][y] == 0)
-		visibleBoard[x][y] = 2; //marked mine
+	if (realBoard[x][y][1] == hidden)
+		realBoard[x][y][1] = marked; 
+	else if (realBoard[x][y][1] == marked)
+		realBoard[x][y][1] = hidden;
 }
 
 void board::openTile(int x, int y)
 {
-	visibleBoard[x][y] = 1;
+	realBoard[x][y][1] = visible;
 
-	if (realBoard[x][y] == 0)
+	if (realBoard[x][y][0] == 0)
 	{
 		int a[8] = { -1, -1, -1, 0, 0, 1, 1, 1 };
 		int b[8] = { -1, 0, 1, -1 , 1, -1, 0, 1 };
@@ -128,7 +135,7 @@ void board::printBoard() const
 	{
 		for (int j = 0; j < m; j++)
 		{
-			std::cout << realBoard[i][j] << " ";
+			std::cout << realBoard[i][j][0] << " ";
 		}
 		std::cout << std::endl;
 	}
@@ -137,7 +144,7 @@ void board::printBoard() const
 	{
 		for (int j = 0; j < m; j++)
 		{
-			std::cout << visibleBoard[i][j] << " ";
+			std::cout << realBoard[i][j][1] << " ";
 		}
 		std::cout << std::endl;
 	}
@@ -147,10 +154,10 @@ board::~board()
 {
 	for (int i = 0; i < n; i++)
 	{
+		for (int j = 0; j < m; j++)
+			delete[] realBoard[i][j];
 		delete[] realBoard[i];
-		delete[] visibleBoard[i];
 	}
 
 	delete[] realBoard;
-	delete[] visibleBoard;
 }
